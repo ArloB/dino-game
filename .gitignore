@@ -1,0 +1,12 @@
+.DS_Store
+*.orig
+*.rej
+*~
+clean.zip
+bin
+out
+target
+.idea
+.vscode
+comp111-ass1.iml
+dependency-reduced-pom.xml
