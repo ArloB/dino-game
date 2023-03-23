@@ -1,4 +1,4 @@
 # Dinosaur Puzzle Game
 
 ## Build
-To build game, run ```mvn package```. Game JAR will be in target folder.
+Requires Java 20 and an installation of maven. To build game, run ```mvn package```. Game JAR will be in target folder.
