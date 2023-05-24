@@ -1,6 +1,7 @@
 package arlob.dinogame;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static arlob.dinogame.Orientation.*;
 import static arlob.dinogame.State.*;
@@ -64,9 +65,7 @@ public class Dinosaurs implements Cloneable {
      *
      * @param difficulty The difficulty of the game.
      */
-    public Dinosaurs(int difficulty) {
-        this(Objective.newObjective(difficulty));
-    }
+    public Dinosaurs(int difficulty) { this(Objective.newObjective(difficulty)); }
 
     public Dinosaurs clone() {
         Dinosaurs d;
@@ -105,30 +104,6 @@ public class Dinosaurs implements Cloneable {
         }
     }
 
-    ///**
-    // * Print out the board state.   May be useful for debugging.
-    // */
-    //private void printBoardState() {
-    //    for (int r = 0; r < 4; r++) {
-    //        for (int c = 0; c < 5; c++) {
-    //            System.out.print((boardstates[r][c] == null ? ' ' : boardstates[r][c].name().charAt(0)) + " ");
-    //        }
-    //        System.out.println();
-    //    }
-    //}
-//
-    ///**
-    // * Print out tile state.   May be useful for debugging.
-    // */
-    //private void printTileState() {
-    //    for (int r = 0; r < 3; r++) {
-    //        for (int c = 0; c < 4; c++) {
-    //            System.out.print(tiles[r][c] == null ? '.' : tiles[r][c].getTileType().name().charAt(0) + "");
-    //        }
-    //        System.out.println();
-    //    }
-    //}
-
     /**
      * Check whether a tile placement fits inside the game board.
      *
@@ -138,20 +113,12 @@ public class Dinosaurs implements Cloneable {
     public static boolean isPlacementOnBoard(String placement) {
         int x = Character.getNumericValue(placement.charAt(1));
         int y = Character.getNumericValue(placement.charAt(2));
-        boolean r = true;
 
-        switch (placement.charAt(3)) {
-            case 'N':
-            case 'S':
-                r = y >= 0 && y < 2;
-                break;
-            case 'E':
-            case 'W':
-                r = x >= 0 && x < 3;
-                break;
-        }
-
-        return r;
+        return switch (placement.charAt(3)) {
+            case 'N', 'S' -> y >= 0 && y < 2;
+            case 'E', 'W' -> x >= 0 && x < 3;
+            default -> false;
+        };
     }
 
 
@@ -261,23 +228,12 @@ public class Dinosaurs implements Cloneable {
     public boolean doesPlacementOverlap(String placement) {
         int x = Character.getNumericValue(placement.charAt(1));
         int y = Character.getNumericValue(placement.charAt(2));
-        boolean r = false;
 
-        switch (placement.charAt(3)) {
-            case 'N':
-            case 'S':
-                if (tiles[y][x] != null || tiles[y + 1][x] != null) {
-                    r = true;
-                }
-                break;
-            case 'E':
-            case 'W':
-                if (tiles[y][x] != null || tiles[y][x + 1] != null) {
-                    r = true;
-                }
-                break;
-        }
-        return r;
+        return switch (placement.charAt(3)) {
+            case 'N', 'S' -> tiles[y][x] != null || tiles[y + 1][x] != null;
+            case 'E', 'W' -> tiles[y][x] != null || tiles[y][x + 1] != null;
+            default -> false;
+        };
     }
 
 
@@ -366,30 +322,32 @@ public class Dinosaurs implements Cloneable {
      */
     public boolean isPlacementConsistent(String placement) {
         Tile tile = new Tile(placement);
+        
+        return isPlacementConsistent(tile);
+    }
+
+    public boolean isPlacementConsistent(Tile tile) {
         Location tile_loc = tile.getLocation();
+        boolean isConsistent = true;
 
-        int count = 0;
+        for (int i = 0; i < offsetCount(tile, true) * offsetCount(tile, false); i++) {
+            int x = i % offsetCount(tile, false);
+            int y = i / offsetCount(tile, false);
 
-        for (int i = 0; i < offsetCount(tile, true); i++) {
-            for (int j = 0; j < offsetCount(tile, false); j++) {
-                State s1 = tile.getTileType().stateFromOffset(j, i, tile.getOrientation());
-                State s2 = getLocationState(tile_loc, j, i);
+            State s1 = tile.getTileType().stateFromOffset(x, y, tile.getOrientation());
+            State s2 = getLocationState(tile_loc, x, y);
 
-                if ((s1 == WATER && s2 == WATER) || (s1 != WATER && s2 != WATER)) {
-                    count++;
-                }
+            if ((s1 == WATER && s2 != WATER) || (s1 != WATER && s2 == WATER)) {
+                isConsistent = false;
+                break;
             }
         }
 
-        return count == 6;
+        return isConsistent;
     }
 
     public int offsetCount(Tile tile, boolean isY) {
-        boolean weast = tile.getOrientation() == WEST || tile.getOrientation() == EAST;
-
-        weast = isY != weast;
-
-        return weast ? 3 : 2;
+        return (isY != (tile.getOrientation() == WEST || tile.getOrientation() == EAST)) ? 3 : 2;
     }
 
     /**
@@ -403,11 +361,16 @@ public class Dinosaurs implements Cloneable {
      */
     public boolean isPlacementDangerous(String placement) {
         Tile tile = new Tile(placement);
+        
+        return isPlacementDangerous(tile);
+    }
+
+    public boolean isPlacementDangerous(Tile tile) {
         Location tile_loc = tile.getLocation();
 
         int count = 0;
 
-        if (!isPlacementConsistent(placement)) {
+        if (!isPlacementConsistent(tile)) {
             return true;
         }
 
@@ -444,12 +407,12 @@ public class Dinosaurs implements Cloneable {
      */
     public boolean violatesObjective(String placement) {
         String req_conn = this.objective.getConnectedIslands();
+        Tile tile = new Tile(placement);
 
-        if (isPlacementDangerous(placement)) {
+        if (isPlacementDangerous(tile)) {
             return true;
         }
 
-        Tile tile = new Tile(placement);
         Location tile_loc = tile.getLocation();
 
         HashSet<Location> found_land = new HashSet<>();
@@ -501,27 +464,31 @@ public class Dinosaurs implements Cloneable {
      * Given a target location, find the set of actions which:
      * 1 - occupy the target location
      * 2 - satisfy all of the game requirements(e.g. objectives)
+     * 3 - validPlacement is true
      *
      * @param targetLoc A location (x,y) on the game board.
      * @return A set of strings, each representing a tile placement
      */
     public Set<String> findCandidatePlacements(Location targetLoc) {
-        Set<String> hS = new TreeSet<>();
-        String[] t = {"a", "b", "c", "d", "e", "f"}, o = {"N", "E", "S", "W"};
+        Set<String> placements = new HashSet<>();
+        String[] tiles = {"a", "b", "c", "d", "e", "f"};
+        String[] orientations = {"N", "E", "S", "W"};
 
         String loc = targetLoc.getX() + "" + targetLoc.getY();
 
-        for (String tile : t) {
-            for (String orientation : o) {
-                String tmp = tile + loc + orientation;
+        IntStream.range(0, tiles.length)
+            .forEach(i -> {
+                String tile = tiles[i];
+                for (String orientation : orientations) {
+                    String placement = tile + loc + orientation;
 
-                if (validPlacement(tmp) && !tile_list.containsKey(TileType.valueOf(tile.toUpperCase()))) {
-                    hS.add(tmp);
+                    if (validPlacement(placement) && !tile_list.containsKey(TileType.valueOf(tile.toUpperCase()))) {
+                        placements.add(placement);
+                    }
                 }
-            }
-        }
+            });
 
-        return hS;
+        return placements;
     }
 
     public String toString() {
@@ -538,40 +505,35 @@ public class Dinosaurs implements Cloneable {
      * @return A set of strings, each representing a placement of all tiles,
      * which satisfies all of the game objectives.
      */
+
     public Set<String> getSolutions() {
-        Dinosaurs d = new Dinosaurs(this.objective);
+        Set<String> sols = Collections.synchronizedSet(new LinkedHashSet<>());
 
-        LinkedHashSet<String> sols = new LinkedHashSet<>();
-
-        recsol(d, this.objective.getInitialState(), sols);
+        recsol(this, sols);
 
         return sols;
     }
 
-    private void recsol(Dinosaurs d, String s, LinkedHashSet<String> sols) {
-        Dinosaurs d_local = d.clone();
-
-        if (s.length() > 0) {
-            for (int i = 0; i < s.length(); i += 4) {
-                d_local.addTileToBoard(s.substring(i, i + 4));
-            }
+    private void recsol(Dinosaurs d, Set<String> sols) {
+        if (d.tile_list.size() == 6) {
+            sols.add(d.toString());
+            return;
         }
 
-        if (d_local.tile_list.size() == 6) {
-            sols.add(d_local.toString());
-        } else {
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 4; j++) {
-                    if (tiles[i][j] != null)
-                        continue;
+        IntStream.range(0, 3).parallel().forEach(i -> {
+            for (int j = 0; j < 4; j++) {
+                if (d.tiles[i][j] != null) {
+                    continue;
+                }
 
-                    Location l = new Location(j, i);
+                Location l = new Location(j, i);
 
-                    for (String t : d_local.findCandidatePlacements(l)) {
-                        recsol(d_local, t, sols);
-                    }
+                for (String t : d.findCandidatePlacements(l)) {
+                    Dinosaurs d_local = d.clone();
+                    d_local.addTileToBoard(t);
+                    recsol(d_local, sols);
                 }
             }
-        }
+        });
     }
 }

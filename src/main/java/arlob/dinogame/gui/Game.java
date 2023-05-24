@@ -5,8 +5,6 @@ import arlob.dinogame.Orientation;
 import arlob.dinogame.Tile;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -23,8 +21,10 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class Game extends Application {
@@ -59,12 +59,14 @@ public class Game extends Application {
     private final Group exposed = new Group();
     private final Group objective = new Group();
 
+    private final Popup popup = new Popup();
+
     private static Set<String> solutions;
 
-    private static final String BASEBOARD_URI = Game.class.getClassLoader().getResource("baseboard.png").toString();
+    private static final String BASEBOARD_URI = Objects.requireNonNull(Game.class.getClassLoader().getResource("baseboard.png")).toString();
 
     /* Loop in public domain CC 0 http://www.freesound.org/people/oceanictrancer/sounds/211684/ */
-    private static final String LOOP_URI = Game.class.getClassLoader().getResource("211684__oceanictrancer__classic-house-loop-128-bpm.wav").toString();
+    private static final String LOOP_URI = Objects.requireNonNull(Game.class.getClassLoader().getResource("211684__oceanictrancer__classic-house-loop-128-bpm.wav")).toString();
     private AudioClip loop;
 
     /* game variables */
@@ -83,9 +85,9 @@ public class Game extends Application {
     Dinosaurs dinosaursGame;
 
     /* Define a drop shadow effect that we will appy to tiles */
-    private static DropShadow dropShadow;
+    private static final DropShadow dropShadow;
 
-    /* Static initializer to initialize dropShadow */ {
+    /* Static initializer to initialize dropShadow */ static {
         dropShadow = new DropShadow();
         dropShadow.setOffsetX(2.0);
         dropShadow.setOffsetY(2.0);
@@ -93,7 +95,7 @@ public class Game extends Application {
     }
 
     /* Graphical representations of tiles */
-    class GTile extends ImageView {
+    static class GTile extends ImageView {
         int tileID;
 
 
@@ -131,7 +133,7 @@ public class Game extends Application {
                 setFitHeight(SQUARE_SIZE);
                 setFitWidth(2 * SQUARE_SIZE);
             }
-            setImage(new Image(Game.class.getClassLoader().getResource(tile + "-" + (char) (orientation + '0') + ".png").toString()));
+            setImage(new Image(Objects.requireNonNull(Game.class.getClassLoader().getResource(tile + "-" + (char) (orientation + '0') + ".png")).toString()));
             setEffect(dropShadow);
         }
 
@@ -148,7 +150,7 @@ public class Game extends Application {
             }
 
             String t = String.format("%02d", tile);
-            setImage(new Image(Game.class.getClassLoader().getResource(t + ".png").toString()));
+            setImage(new Image(Objects.requireNonNull(Game.class.getClassLoader().getResource(t + ".png")).toString()));
             this.tileID = tile;
             setFitHeight(OBJECTIVE_HEIGHT);
             setFitWidth(OBJECTIVE_WIDTH);
@@ -181,7 +183,7 @@ public class Game extends Application {
             super(tile);
             for (int i = 0; i < 4; i++) {
                 char idx = (char) (i + '0');
-                images[i] = new Image(Game.class.getClassLoader().getResource(tile + "-" + idx + ".png").toString());
+                images[i] = new Image(Objects.requireNonNull(Game.class.getClassLoader().getResource(tile + "-" + idx + ".png")).toString());
             }
             setImage(images[0]);
             orientation = 0;
@@ -227,9 +229,9 @@ public class Game extends Application {
         private void snapToGrid() {
 
             if (onBoard() && (!alreadyOccupied())) {
-                if ((getLayoutX() >= (PLAY_AREA_X - (SQUARE_SIZE / 2))) && (getLayoutX() < (PLAY_AREA_X + (SQUARE_SIZE / 2)))) {
+                if ((getLayoutX() >= (PLAY_AREA_X - (SQUARE_SIZE / 2.0))) && (getLayoutX() < (PLAY_AREA_X + (SQUARE_SIZE / 2.0)))) {
                     setLayoutX(PLAY_AREA_X);
-                } else if ((getLayoutX() >= PLAY_AREA_X + (SQUARE_SIZE / 2)) && (getLayoutX() < PLAY_AREA_X + 1.5 * SQUARE_SIZE)) {
+                } else if ((getLayoutX() >= PLAY_AREA_X + (SQUARE_SIZE / 2.0)) && (getLayoutX() < PLAY_AREA_X + 1.5 * SQUARE_SIZE)) {
                     setLayoutX(PLAY_AREA_X + SQUARE_SIZE);
                 } else if ((getLayoutX() >= PLAY_AREA_X + 1.5 * SQUARE_SIZE) && (getLayoutX() < PLAY_AREA_X + 2.5 * SQUARE_SIZE)) {
                     setLayoutX(PLAY_AREA_X + 2 * SQUARE_SIZE);
@@ -237,9 +239,9 @@ public class Game extends Application {
                     setLayoutX(PLAY_AREA_X + 3 * SQUARE_SIZE);
                 }
 
-                if ((getLayoutY() >= (PLAY_AREA_Y - (SQUARE_SIZE / 2))) && (getLayoutY() < (PLAY_AREA_Y + (SQUARE_SIZE / 2)))) {
+                if ((getLayoutY() >= (PLAY_AREA_Y - (SQUARE_SIZE / 2.0))) && (getLayoutY() < (PLAY_AREA_Y + (SQUARE_SIZE / 2.0)))) {
                     setLayoutY(PLAY_AREA_Y);
-                } else if ((getLayoutY() >= PLAY_AREA_Y + (SQUARE_SIZE / 2)) && (getLayoutY() < PLAY_AREA_Y + 1.5 * SQUARE_SIZE)) {
+                } else if ((getLayoutY() >= PLAY_AREA_Y + (SQUARE_SIZE / 2.0)) && (getLayoutY() < PLAY_AREA_Y + 1.5 * SQUARE_SIZE)) {
                     setLayoutY(PLAY_AREA_Y + SQUARE_SIZE);
                 } else if ((getLayoutY() >= PLAY_AREA_Y + 1.5 * SQUARE_SIZE) && (getLayoutY() < PLAY_AREA_Y + 2.5 * SQUARE_SIZE)) {
                     setLayoutY(PLAY_AREA_Y + 2 * SQUARE_SIZE);
@@ -256,8 +258,8 @@ public class Game extends Application {
          * @return true if the tile is on the board
          */
         private boolean onBoard() {
-            return getLayoutX() > (PLAY_AREA_X - (SQUARE_SIZE / 2)) && (getLayoutX() < (PLAY_AREA_X + 3.5 * SQUARE_SIZE))
-                    && getLayoutY() > (PLAY_AREA_Y - (SQUARE_SIZE / 2)) && (getLayoutY() < (PLAY_AREA_Y + 2.5 * SQUARE_SIZE));
+            return getLayoutX() > (PLAY_AREA_X - (SQUARE_SIZE / 2.0)) && (getLayoutX() < (PLAY_AREA_X + 3.5 * SQUARE_SIZE))
+                    && getLayoutY() > (PLAY_AREA_Y - (SQUARE_SIZE / 2.0)) && (getLayoutY() < (PLAY_AREA_Y + 2.5 * SQUARE_SIZE));
         }
 
         /**
@@ -377,25 +379,29 @@ public class Game extends Application {
     /**
      * Set up event handlers for the main game
      *
-     * @param scene The Scene used by the game.
+     * @param scene        The Scene used by the game.
      */
     private void setUpHandlers(Scene scene) {
         /* create handlers for key press and release events */
         scene.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.M) {
-                toggleSoundLoop();
-                event.consume();
-            } else if (event.getCode() == KeyCode.Q) {
-                Platform.exit();
-                event.consume();
-            } else if (event.getCode() == KeyCode.SLASH) {
-                solution.setOpacity(1.0);
-                gtiles.setOpacity(0);
-                event.consume();
+            switch (event.getCode()) {
+                case M -> {
+                    toggleSoundLoop();
+                    event.consume();
+                }
+                case Q -> {
+                    Platform.exit();
+                    event.consume();
+                }
+                case SLASH -> {
+                    solution.setOpacity(1.0);
+                    gtiles.setOpacity(0);
+                    event.consume();
+                }
             }
         });
         scene.setOnKeyReleased(event -> {
-            if (event.getCode() == KeyCode.SLASH) {
+            if (Objects.requireNonNull(event.getCode()) == KeyCode.SLASH) {
                 solution.setOpacity(0);
                 gtiles.setOpacity(1.0);
                 event.consume();
@@ -531,19 +537,15 @@ public class Game extends Application {
      * Check game completion and update status
      */
     private void checkCompletion() {
-        String state = "";
+        StringBuilder state = new StringBuilder();
 
         for (int i = 0; i < 6; i++) {
             if (tileState[i] == NOT_PLACED)
                 return;
-            state = state +
-                    (char) (i + 'a') +
-                    (char) (((tileState[i] / 4) % 4) + '0') +
-                    (char) (((tileState[i] / 4) / 4) + '0') +
-                    (Orientation.values()[tileState[i] % 4].toChar());
+            state.append((char) (i + 'a')).append((char) (((tileState[i] / 4) % 4) + '0')).append((char) (((tileState[i] / 4) / 4) + '0')).append(Orientation.values()[tileState[i] % 4].toChar());
         }
 
-        if (solutions.contains(state))
+        if (solutions.contains(state.toString()))
             showCompletion();
     }
 
@@ -567,12 +569,7 @@ public class Game extends Application {
         Button button = new Button("Restart");
         button.setLayoutX(BOARD_X + BOARD_MARGIN + 240);
         button.setLayoutY(GAME_HEIGHT - 55);
-        button.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent e) {
-                newGame();
-            }
-        });
+        button.setOnAction(e -> newGame());
         controls.getChildren().add(button);
 
         difficulty.setMin(1);
@@ -657,6 +654,9 @@ public class Game extends Application {
 
         primaryStage.setTitle("DINOSAURS - Mystic Islands");
         Scene scene = new Scene(root, GAME_WIDTH, GAME_HEIGHT);
+
+        popup.setX(300);
+        popup.setY(200);
 
         root.getChildren().add(gtiles);
         root.getChildren().add(board);
